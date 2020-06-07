@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import api from './services/api';
 
 import {
   SafeAreaView,
@@ -10,45 +11,45 @@ import {
   TouchableOpacity,
 } from "react-native";
 
-import api from './services/api';
-
 export default function App() {
-
   const [repositories, setRepositories] = useState([]);
 
   useEffect(() => {
     api.get('repositories').then(response => {
       setRepositories(response.data);
-    });
+    })
   }, []);
 
   async function handleLikeRepository(id) {
-    const repositoryIndex = repositories.findIndex(repository => repository.id === id);
-    const response = await api.post(`repositories/${id}/like`).then(response => response);
-    const repository = response.data;
-    
-    repositories[repositoryIndex] = repository;
+    const response = await api.post(`repositories/${id}/like`);
 
-    setRepositories([...repositories]);
+    const likedRepository = response.data;
+
+    const repositoriesUpdated = repositories.map(repository => {
+      if (repository.id === id) {
+        return likedRepository;
+      } else {
+        return repository;
+      }
+    });
+
+    setRepositories([...repositoriesUpdated]);
   }
 
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#7159c1" />
       <SafeAreaView style={styles.container}>
-        <FlatList 
-          style={styles.repositoryContainer}
+        <FlatList
           data={repositories}
           keyExtractor={repository => repository.id}
           renderItem={({ item: repository }) => (
-            <>
-              <Text style={styles.repository}>
-                {repository.title}
-              </Text>
+            <View style={styles.repositoryContainer}>
+              <Text style={styles.repository}>{repository.title}</Text>
 
               <View style={styles.techsContainer}>
-                {repository.tecs.map(tech => (
-                  <Text style={styles.tech}>
+                {repository.techs.map(tech => (
+                  <Text key={tech} style={styles.tech}>
                     {tech}
                   </Text>
                 ))}
@@ -59,7 +60,7 @@ export default function App() {
                   style={styles.likeText}
                   testID={`repository-likes-${repository.id}`}
                 >
-                  {`${repository.likes} curtidas`}
+                  {repository.likes} curtida{repository.likes > 1 ? 's' : ''}
                 </Text>
               </View>
 
@@ -70,7 +71,7 @@ export default function App() {
               >
                 <Text style={styles.buttonText}>Curtir</Text>
               </TouchableOpacity>
-            </>
+            </View>
           )}
         />
       </SafeAreaView>
